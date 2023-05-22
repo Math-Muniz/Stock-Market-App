@@ -5,7 +5,6 @@ import history as hist
 import bollinger_bands as bollinger
 import styles
 import streamlit_toggle as tog
-import yfinance as yf
 import time
 
 tickers = inv.get_stocks_list("brazil")
@@ -38,56 +37,50 @@ with st.sidebar:
     init_date = date_reference + datetime.timedelta(days=-(30 + number_of_days))
     end_date = date_reference
 
-    toogle_column1, toogle_column2 = st.columns(2)
-
-    with toogle_column1:
-        st.write(f"Auto Refresh ({sleep_time}s)")
-    with toogle_column2:
-        toogle = tog.st_toggle_switch(
-            key="Key1", 
-            default_value=False, 
-            label_after=False, 
-            inactive_color='rgba(255, 75, 75, .5)', 
-            active_color="rgb(255, 75, 75)", 
-            track_color="rgba(255, 75, 75, .5)"
+    toogle = tog.toggle(
+        widget = "radio",
+        label = (f"Auto Refresh ({sleep_time}s)"),
+        key = "Key1", 
+        value =False 
         )
 
 def prepare_history_visualization():
     history, instance = hist.get(ticker, init_date=init_date, end_date=end_date) if init_date else hist.get(ticker)
-
-    if 'Close' not in history.columns:
-        st.write("No closing price data available.")
-        return
-
-    if len(history) < 20:
-        st.write("Insufficient data for analysis.")
-        return
-
-    current_price = get_current_price(ticker)  # Get the current price
-
-    current_close = history['Close'][history.index.max()]
-    previous_close = history['Close'][history.index[-2]]
-    current_value_change = (current_close / previous_close - 1) * 100
-
-    current_value.metric("Current Value", f"R$ {round(current_close, 2)}", f"{round(current_value_change, 2)}%")
-    min_value.metric("Minimum Value", f"R$ {round(history['Close'].min(), 2)}", f"{round((history['Close'].min() / current_close - 1) * 100, 2)}%")
-    max_value.metric("Maximum Value", f"R$ {round(history['Close'].max(), 2)}", f"{round((history['Close'].max() / current_close - 1) * 100, 2)}%")
-
+    if not history.empty:
+        print("CURRENT PRICE ->", history["Close"].iat[-1])
+    else:
+        print('insuficient analisys')
     bollinger_figure = bollinger.get(ticker, history)
+
+    if 'Close' in history.columns and len(history) > 0:
+        current_close = history['Close'].iloc[-1]
+        previous_close = history['Close'].iloc[-2] if len(history) > 1 else None
+
+        if current_close and previous_close:
+            current_value.metric("Current Value", f"R$ {round(current_close, 2)}", f"{round(((current_close / previous_close) - 1) * 100, 2)}%")
+        else:
+            current_value.metric("Current Value", "N/A", "N/A")
+
+        if 'Close' in history.columns:
+            min_value.metric("Minimum Value", f"R$ {round(history['Close'].min(),2)}", f"{round(((history['Close'].min() / current_close) - 1) * 100, 2)}%")
+        else:
+            min_value.metric("Minimum Value", "N/A", "N/A")
+        
+        if 'Close' in history.columns:
+            max_value.metric("Maximum Value", f"R$ {round(history['Close'].max(),2)}", f"{round(((history['Close'].min() / current_close) - 1) * 100, 2)}%")
+        else:
+            max_value.metric("Maximum Value", "N/A", "N/A")
+    else:
+        current_value.metric("Current Value", "N/A", "N/A")
+        min_value.metric("Minimum Value", "N/A", "N/A")
+        max_value.metric("Maximum Value", "N/A", "N/A")
+
     graph.plotly_chart(bollinger_figure, use_container_width=True, sharing="streamlit")
 
-def get_current_price(ticker):
-    stock = yf.Ticker(ticker + ".SA")
-    current_price = stock.history(period="1d")["Close"].iloc[-1]
-    return current_price
-
-
-# Restante do código...
-
-
 if ticker and sleep_time:
-    col1, col2, col3 = st.columns(3)
 
+    col1, col2, col3 = st.columns(3)
+    
     with col1:
         current_value = st.empty()
     with col2:
@@ -101,6 +94,3 @@ if ticker and sleep_time:
         time.sleep(sleep_time)
     else:
         prepare_history_visualization()
-    
-    current_price = get_current_price(ticker)
-    st.write("CURRENT PRICE ->", current_price)  # Display the current price
