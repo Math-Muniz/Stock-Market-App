@@ -5,8 +5,8 @@ import history as hist
 import bollinger_bands as bollinger
 import styles
 import  streamlit_toggle as tog
-import yfinance as yf
 import time
+import yfinance as yf
 
 tickers = inv.get_stocks_list("brazil")
 
@@ -55,7 +55,7 @@ with st.sidebar:
 def prepare_history_visualization():
     history, instance = hist.get(ticker, init_date=init_date, end_date=end_date) if init_date else hist.get(ticker)
 
-    current_price = history["Close"].iat[-1]  # Get the current price
+    current_price = get_current_price(ticker)  # Get the current price
 
     bollinger_figure = bollinger.get(ticker, history)
 
@@ -70,7 +70,9 @@ def get_current_price(ticker):
     current_price = stock.history(period="1d")["Close"].iloc[-1]
     return current_price
 
-# Resto do código...
+
+# Restante do código...
+
 
 if ticker and sleep_time:
     col1, col2, col3 = st.columns(3)
@@ -88,6 +90,6 @@ if ticker and sleep_time:
         time.sleep(sleep_time)
     else:
         prepare_history_visualization()
-
+    
     current_price = get_current_price(ticker)
     st.write("CURRENT PRICE ->", current_price)  # Display the current price
