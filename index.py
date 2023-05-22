@@ -4,9 +4,9 @@ import datetime
 import history as hist
 import bollinger_bands as bollinger
 import styles
-import  streamlit_toggle as tog
-import time
+import streamlit_toggle as tog
 import yfinance as yf
+import time
 
 tickers = inv.get_stocks_list("brazil")
 
@@ -46,8 +46,8 @@ with st.sidebar:
         toogle = tog.st_toggle_switch(
             key="Key1", 
             default_value=False, 
-            label_after = False, 
-            inactive_color = 'rgba(255, 75, 75, .5)', 
+            label_after=False, 
+            inactive_color='rgba(255, 75, 75, .5)', 
             active_color="rgb(255, 75, 75)", 
             track_color="rgba(255, 75, 75, .5)"
         )
@@ -55,14 +55,25 @@ with st.sidebar:
 def prepare_history_visualization():
     history, instance = hist.get(ticker, init_date=init_date, end_date=end_date) if init_date else hist.get(ticker)
 
+    if 'Close' not in history.columns:
+        st.write("No closing price data available.")
+        return
+
+    if len(history) < 2:
+        st.write("Insufficient data for analysis.")
+        return
+
     current_price = get_current_price(ticker)  # Get the current price
 
+    current_close = history['Close'][history.index.max()]
+    previous_close = history['Close'][history.index[-2]]
+    current_value_change = (current_close / previous_close - 1) * 100
+
+    current_value.metric("Current Value", f"R$ {round(current_close, 2)}", f"{round(current_value_change, 2)}%")
+    min_value.metric("Minimum Value", f"R$ {round(history['Close'].min(), 2)}", f"{round((history['Close'].min() / current_close - 1) * 100, 2)}%")
+    max_value.metric("Maximum Value", f"R$ {round(history['Close'].max(), 2)}", f"{round((history['Close'].max() / current_close - 1) * 100, 2)}%")
+
     bollinger_figure = bollinger.get(ticker, history)
-
-    current_value.metric("Current Value", f"R$ {round(history['Close'][history.index.max()], 2)}", f"{round((history['Close'][history.index.max()] / history['Close'][history.index[-2]] - 1) * 100, 2)}%")
-    min_value.metric("Minimum Value", f"R$ {round(history['Close'].min(), 2)}", f"{round((history['Close'].min() / history['Close'][history.index.max()] - 1) * 100, 2)}%")
-    max_value.metric("Maximum Value", f"R$ {round(history['Close'].max(), 2)}", f"{round((history['Close'].max() / history['Close'][history.index.max()] - 1) * 100, 2)}%")
-
     graph.plotly_chart(bollinger_figure, use_container_width=True, sharing="streamlit")
 
 def get_current_price(ticker):
