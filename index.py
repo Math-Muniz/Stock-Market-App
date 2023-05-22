@@ -56,7 +56,11 @@ def prepare_history_visualization():
     print("CURRENT PRICE ->", history["Close"].iat[-1])
     bollinger_figure = bollinger.get(ticker, history)
 
-    current_value.metric("Current Value", f"R$ {round(history['Close'][history.index.max()],2)}", f"{round((history['Close'][history.index.max()] / history['Close'][history.index[-2]] - 1) * 100, 2)}%")
+    if len(history['Close']) >= 2:
+        current_value.metric("Current Value", f"R$ {round(history['Close'][history.index.max()],2)}", f"{round((history['Close'][history.index.max()] / history['Close'][history.index[-2]] - 1) * 100, 2)}%")
+    else:
+        current_value.metric("Current Value", "N/A", "N/A")
+        
     min_value.metric("Minimum Value", f"R$ {round(history['Close'].min(),2)}", f"{round((history['Close'].min() / history['Close'][history.index.max()] - 1) * 100,2)}%")
     max_value.metric("Maximum Value", f"R$ {round(history['Close'].max(),2)}", f"{round((history['Close'].max() / history['Close'][history.index.max()] - 1) * 100,2)}%")
 
