@@ -5,6 +5,7 @@ import history as hist
 import bollinger_bands as bollinger
 import styles
 import  streamlit_toggle as tog
+import yfinance as yf
 import time
 
 tickers = inv.get_stocks_list("brazil")
@@ -53,23 +54,27 @@ with st.sidebar:
 
 def prepare_history_visualization():
     history, instance = hist.get(ticker, init_date=init_date, end_date=end_date) if init_date else hist.get(ticker)
-    
+
     current_price = history["Close"].iat[-1]  # Get the current price
-    
-    st.write("CURRENT PRICE ->", current_price)  # Display the current price
-    
+
     bollinger_figure = bollinger.get(ticker, history)
-    
+
     current_value.metric("Current Value", f"R$ {round(history['Close'][history.index.max()], 2)}", f"{round((history['Close'][history.index.max()] / history['Close'][history.index[-2]] - 1) * 100, 2)}%")
     min_value.metric("Minimum Value", f"R$ {round(history['Close'].min(), 2)}", f"{round((history['Close'].min() / history['Close'][history.index.max()] - 1) * 100, 2)}%")
     max_value.metric("Maximum Value", f"R$ {round(history['Close'].max(), 2)}", f"{round((history['Close'].max() / history['Close'][history.index.max()] - 1) * 100, 2)}%")
 
     graph.plotly_chart(bollinger_figure, use_container_width=True, sharing="streamlit")
-    
-if ticker and sleep_time:
 
+def get_current_price(ticker):
+    stock = yf.Ticker(ticker + ".SA")
+    current_price = stock.history(period="1d")["Close"].iloc[-1]
+    return current_price
+
+# Resto do código...
+
+if ticker and sleep_time:
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         current_value = st.empty()
     with col2:
@@ -83,3 +88,6 @@ if ticker and sleep_time:
         time.sleep(sleep_time)
     else:
         prepare_history_visualization()
+
+    current_price = get_current_price(ticker)
+    st.write("CURRENT PRICE ->", current_price)  # Display the current price
