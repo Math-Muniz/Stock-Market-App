@@ -59,7 +59,7 @@ def prepare_history_visualization():
         st.write("No closing price data available.")
         return
 
-    if len(history) < 2:
+    if len(history) < 20:
         st.write("Insufficient data for analysis.")
         return
 
